@@ -1,56 +1,38 @@
-#!/usr/bin/env python3
-import tcod
-from actions import EscapeAction, MovementAction
-from input_handlers import EventHandler
+from typing import Set, Iterable, Any
+
+from tcod.context import  Context
+from tcod.console import Console
+
+
+from actions import EscapeAction, MovementAction, Action
 from entity import Entity
+from input_handlers import EventHandler
 
 
-def main() -> None:
-    screen_width = 80
-    screen_height = 50
-
-    tileset = tcod.tileset.load_tilesheet(
-        "C:/Users/PC/PycharmProjects/RoguePyke/assets/dejavu10x10_gs_tc.png", 32, 8, tcod.tileset.CHARMAP_TCOD
-    )
-
-    event_handler = EventHandler()
-
-    player = Entity(int(screen_width / 2), int(screen_height / 2), "@",(255,255,255))
-    npc = Entity(int(screen_width / 2 - 5), int(screen_height / 2), "@", (255, 255, 0))
-    entities = {npc,player}
-
-    with tcod.context.new_terminal(
-            screen_width,
-            screen_height,
-            tileset=tileset,
-            title="Yet Another Roguelike Tutorial",
-            vsync=True,
-    ) as context:
-        root_console = tcod.console.Console(screen_width, screen_height, order="F")
-
-        #game loop
-
-        while True:
-
-            root_console.print(x=player.x, y=player.y, string=player.char, fg=player.color)
-
-            context.present(root_console)
-
-            root_console.clear()
+class Engine:
+    def __init__(self, entities:Set[Entity], event_handler : EventHandler,player:Entity):
+        self.entities=entities
+        self.event_handler = event_handler
+        self.player = player
 
 
-            for event in tcod.event.wait():
-                action = event_handler.dispatch(event)
+    def handle_events(self, events:Iterable[Any]) -> None:
+        for event in events:
+            action = self.event_handler.dispatch(event)
 
-                if action is None:
-                    continue
+            if action is None:
+                continue
 
-                if isinstance(action, MovementAction):
-                    player.move(dx=action.dx, dy=action.dy)
+            if isinstance(action,MovementAction):
+                self.player.move(dx=action.dx, dy=action.dy)
 
-                elif isinstance(action, EscapeAction):
-                    raise SystemExit()
+            elif isinstance(action,EscapeAction):
+                raise SystemExit()
 
+    def render(self, console:Console, context:Context)->None:
+        for entity in self.entities:
+            console.print(entity.x,entity.y,entity.char,fg=entity.color)
 
-if __name__ == "__main__":
-    main()
+        context.present(console)
+
+        console.clear()
